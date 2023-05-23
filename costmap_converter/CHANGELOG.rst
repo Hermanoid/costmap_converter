@@ -7,6 +7,13 @@ Changelog for package costmap_converter
 * OpenCV 4 compatibility fix
 * Contributors: daviddudas
 
+0.0.13 (2020-05-13)
+-------------------
+* Changed minimum CMake version to 3.1
+* Fixed wrong return type of method pointToNeighborCells
+* OpenCV 4 compatibility fix (Thanks to daviddudas)
+* Contributors: Christoph Rösmann, daviddudas
+
 0.1.1 (2020-01-25)
 ------------------
 * Fixed ament plugin export
