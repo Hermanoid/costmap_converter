@@ -47,16 +47,19 @@
 #include <costmap_converter/costmap_converter_interface.h>
 #include <pluginlib/class_loader.hpp>
 
-class CostmapStandaloneConversion : public rclcpp::Node {
- public:
+class CostmapStandaloneConversion : public rclcpp::Node
+{
+public:
   CostmapStandaloneConversion(const std::string node_name)
       : rclcpp::Node(node_name),
         converter_loader_("costmap_converter",
-                          "costmap_converter::BaseCostmapToPolygons") {
+                          "costmap_converter::BaseCostmapToPolygons")
+  {
     costmap_ros_ =
         std::make_shared<nav2_costmap_2d::Costmap2DROS>("converter_costmap");
     costmap_thread_ = std::make_unique<std::thread>(
-        [](rclcpp_lifecycle::LifecycleNode::SharedPtr node) {
+        [](rclcpp_lifecycle::LifecycleNode::SharedPtr node)
+        {
           rclcpp::spin(node->get_node_base_interface());
         },
         costmap_ros_);
@@ -76,9 +79,12 @@ class CostmapStandaloneConversion : public rclcpp::Node {
     get_parameter_or<std::string>("converter_plugin", converter_plugin,
                                   converter_plugin);
 
-    try {
+    try
+    {
       converter_ = converter_loader_.createSharedInstance(converter_plugin);
-    } catch (const pluginlib::PluginlibException &ex) {
+    }
+    catch (const pluginlib::PluginlibException &ex)
+    {
       RCLCPP_ERROR(get_logger(),
                    "The plugin failed to load for some reason. Error: %s",
                    ex.what());
@@ -117,10 +123,17 @@ class CostmapStandaloneConversion : public rclcpp::Node {
     declare_parameter("odom_topic", rclcpp::ParameterValue(odom_topic));
     get_parameter_or<std::string>("odom_topic", odom_topic, odom_topic);
 
-    if (converter_) {
+    if (converter_)
+    {
       converter_->setOdomTopic(odom_topic);
-      converter_->initialize(
-          std::make_shared<rclcpp::Node>("intra_node", "costmap_converter"));
+      auto nh = std::make_shared<rclcpp::Node>("intra_node", "costmap_converter");
+      // nh->declare_parameter("cluster_max_distance", 0.75);
+      nh->declare_parameter("cluster_max_distance", 0.5);
+      nh->declare_parameter("cluster_max_pts", 200);
+      nh->declare_parameter("cluster_min_pts", 5);
+      nh->declare_parameter("convex_hull_min_pt_separation", 0.1);
+      converter_->initialize(nh);
+
       converter_->startWorker(std::make_shared<rclcpp::Rate>(5),
                               costmap_ros_->getCostmap(), true);
     }
@@ -130,11 +143,13 @@ class CostmapStandaloneConversion : public rclcpp::Node {
         std::bind(&CostmapStandaloneConversion::publishCallback, this));
   }
 
-  void publishCallback() {
+  void publishCallback()
+  {
     costmap_converter::ObstacleArrayConstPtr obstacles =
         converter_->getObstacles();
 
-    if (!obstacles) return;
+    if (!obstacles)
+      return;
 
     obstacle_pub_->publish(*obstacles);
 
@@ -145,7 +160,8 @@ class CostmapStandaloneConversion : public rclcpp::Node {
 
   void publishAsMarker(
       const std::string &frame_id,
-      const std::vector<geometry_msgs::msg::PolygonStamped> &polygonStamped) {
+      const std::vector<geometry_msgs::msg::PolygonStamped> &polygonStamped)
+  {
     visualization_msgs::msg::Marker line_list;
     line_list.header.frame_id = frame_id;
     line_list.header.stamp = now();
@@ -160,9 +176,11 @@ class CostmapStandaloneConversion : public rclcpp::Node {
     line_list.color.g = 1.0;
     line_list.color.a = 1.0;
 
-    for (std::size_t i = 0; i < polygonStamped.size(); ++i) {
+    for (std::size_t i = 0; i < polygonStamped.size(); ++i)
+    {
       for (int j = 0; j < (int)polygonStamped[i].polygon.points.size() - 1;
-           ++j) {
+           ++j)
+      {
         geometry_msgs::msg::Point line_start;
         line_start.x = polygonStamped[i].polygon.points[j].x;
         line_start.y = polygonStamped[i].polygon.points[j].y;
@@ -174,12 +192,14 @@ class CostmapStandaloneConversion : public rclcpp::Node {
       }
       // close loop for current polygon
       if (!polygonStamped[i].polygon.points.empty() &&
-          polygonStamped[i].polygon.points.size() != 2) {
+          polygonStamped[i].polygon.points.size() != 2)
+      {
         geometry_msgs::msg::Point line_start;
         line_start.x = polygonStamped[i].polygon.points.back().x;
         line_start.y = polygonStamped[i].polygon.points.back().y;
         line_list.points.push_back(line_start);
-        if (line_list.points.size() % 2 != 0) {
+        if (line_list.points.size() % 2 != 0)
+        {
           geometry_msgs::msg::Point line_end;
           line_end.x = polygonStamped[i].polygon.points.front().x;
           line_end.y = polygonStamped[i].polygon.points.front().y;
@@ -192,7 +212,8 @@ class CostmapStandaloneConversion : public rclcpp::Node {
 
   void publishAsMarker(
       const std::string &frame_id,
-      const costmap_converter_msgs::msg::ObstacleArrayMsg &obstacles) {
+      const costmap_converter_msgs::msg::ObstacleArrayMsg &obstacles)
+  {
     visualization_msgs::msg::Marker line_list;
     line_list.header.frame_id = frame_id;
     line_list.header.stamp = now();
@@ -207,8 +228,10 @@ class CostmapStandaloneConversion : public rclcpp::Node {
     line_list.color.g = 1.0;
     line_list.color.a = 1.0;
 
-    for (const auto &obstacle : obstacles.obstacles) {
-      for (int j = 0; j < (int)obstacle.polygon.points.size() - 1; ++j) {
+    for (const auto &obstacle : obstacles.obstacles)
+    {
+      for (int j = 0; j < (int)obstacle.polygon.points.size() - 1; ++j)
+      {
         geometry_msgs::msg::Point line_start;
         line_start.x = obstacle.polygon.points[j].x;
         line_start.y = obstacle.polygon.points[j].y;
@@ -220,12 +243,14 @@ class CostmapStandaloneConversion : public rclcpp::Node {
       }
       // close loop for current polygon
       if (!obstacle.polygon.points.empty() &&
-          obstacle.polygon.points.size() != 2) {
+          obstacle.polygon.points.size() != 2)
+      {
         geometry_msgs::msg::Point line_start;
         line_start.x = obstacle.polygon.points.back().x;
         line_start.y = obstacle.polygon.points.back().y;
         line_list.points.push_back(line_start);
-        if (line_list.points.size() % 2 != 0) {
+        if (line_list.points.size() % 2 != 0)
+        {
           geometry_msgs::msg::Point line_end;
           line_end.x = obstacle.polygon.points.front().x;
           line_end.y = obstacle.polygon.points.front().y;
@@ -236,7 +261,7 @@ class CostmapStandaloneConversion : public rclcpp::Node {
     marker_pub_->publish(line_list);
   }
 
- private:
+private:
   pluginlib::ClassLoader<costmap_converter::BaseCostmapToPolygons>
       converter_loader_;
   std::shared_ptr<costmap_converter::BaseCostmapToPolygons> converter_;
@@ -253,7 +278,8 @@ class CostmapStandaloneConversion : public rclcpp::Node {
   int occupied_min_value_;
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   rclcpp::init(argc, argv);
 
   auto convert_process =
