@@ -145,15 +145,15 @@ public:
 
   void publishCallback()
   {
+    frame_id_ = costmap_ros_->getGlobalFrameID();
+
     costmap_converter::ObstacleArrayConstPtr obstacles =
-        converter_->getObstacles();
+        converter_->getObstacles(frame_id_);
 
     if (!obstacles)
       return;
 
     obstacle_pub_->publish(*obstacles);
-
-    frame_id_ = costmap_ros_->getGlobalFrameID();
 
     publishAsMarker(frame_id_, *obstacles);
   }
